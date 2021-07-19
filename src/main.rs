@@ -40,37 +40,6 @@ fn invariant(state: State) -> bool {
     state.phrase != "BAAB"
 }
 
-struct StateNode {
-    state: State,
-    parent: Option<usize>,
-    children: Vec<usize>
-}
-
-struct StateTree {
-    nodes: Vec<StateNode>,
-}
-
-impl StateTree {
-    fn new() -> StateTree {
-        StateTree {
-            nodes: vec![]
-        }
-    }
-
-    fn get_backtrace(&self, node_idx: usize) -> Vec<State> {
-        let mut node = &self.nodes[node_idx];
-
-        let mut trace = vec![node.state.clone()];
-
-        while node.parent.is_some() {
-            node = &self.nodes[node.parent.unwrap()];
-            trace.push(node.state.clone())
-        }
-
-        trace
-    }
-}
-
 fn main() {
     let initial_state = init();
 
