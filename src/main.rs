@@ -13,27 +13,50 @@ fn init() -> State {
     }
 }
 
+macro_rules! branch {
+    ($state:expr, $prime:expr, $inner:block) => {
+        $prime.push({
+            let mut state = $state.clone();
+            $inner
+            state
+        });
+    };
+}
+
 fn next(state: State) -> Vec<State> {
+    let mut prime = vec![state.clone()];
+
     if state.iterations > 5 {
-        return vec![]
+        return prime
     }
 
-    return vec![
-        State {
-            phrase: format!("{}{}", state.phrase, "A"),
-            iterations: state.iterations + 1,
-            ..state
-        },
-        State {
-            phrase: format!("{}{}", state.phrase, "B"),
-            iterations: state.iterations + 1,
-            ..state
-        },
-        State {
-            phrase: state.phrase,
-            ..state
+    prime.push({
+        let mut state = state.clone();
+
+        {
+            state.phrase = format!("{}{}", state.phrase, "A");
+            state.iterations += 1;
         }
-    ]
+
+        state
+    });
+
+    // branch! (state, prime, {
+    //     state.phrase = format!("{}{}", state.phrase, "A");
+    //     state.iterations += 1;
+    // });
+
+    prime.push(State {
+        phrase: format!("{}{}", state.phrase, "B"),
+        iterations: state.iterations + 1,
+    });
+
+    prime.push(State {
+        phrase: state.phrase,
+        ..state
+    });
+
+    prime
 }
 
 fn invariant(state: State) -> bool {
@@ -55,10 +78,10 @@ fn main() {
             continue;
         }
 
-        if !invariant(prev_state.clone()) {
-            println!("Invariant violated with state: {:#?}", prev_state);
-            break;
-        }
+        // if !invariant(prev_state.clone()) {
+        //     println!("Invariant violated with state: {:#?}", prev_state);
+        //     break;
+        // }
 
         println!("{:#?}", prev_state);
         let mut next_states = next(prev_state.clone());
