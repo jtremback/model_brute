@@ -36,6 +36,76 @@ impl Next {
     }
 }
 
+fn branch(
+    states: Vec<Option<State>>,
+    closures: Vec<fn(&State) -> Vec<Option<State>>>,
+) -> Vec<Option<State>> {
+    dbg!(states.clone());
+    let mut states = vec![];
+    for closure in closures {
+        let mut states_copy: Vec<Option<State>> = states.clone();
+        for (i, state) in states_copy.clone().iter().enumerate() {
+            if let Some(some_state) = state {
+                // let mut some_state_copy = some_state.clone();
+                // if !closure(&mut some_state_copy, &mut self) {
+                //     states_copy[i] = None
+                // } else {
+                //     states_copy[i] = Some(some_state_copy)
+                // }
+                let mut out_states = closure(some_state);
+                states_copy.append(&mut out_states);
+            }
+        }
+        states.append(&mut states_copy)
+    }
+    dbg!(states.clone());
+    states
+}
+
+fn output(input: Vec<Option<State>>) -> Vec<State> {
+    input
+        .iter()
+        .filter(|x| x.is_some())
+        .map(|x| x.clone().unwrap())
+        .collect()
+}
+
+fn next(input: State) -> Vec<State> {
+    let state = branch(
+        vec![Some(input)],
+        vec![|state| {
+            let mut state = state.clone();
+            if state.iterations > 5 {
+                return vec![None];
+            }
+
+            state.iterations += 1;
+
+            let state = branch(
+                vec![Some(state)],
+                vec![
+                    |state| {
+                        let mut state = state.clone();
+                        state.phrase = format!("{}{}", state.phrase, "A");
+
+                        vec![Some(state)]
+                    },
+                    |state| {
+                        let mut state = state.clone();
+                        state.phrase = format!("{}{}", state.phrase, "B");
+
+                        vec![Some(state)]
+                    },
+                ],
+            );
+
+            state
+        }],
+    );
+
+    output(state)
+}
+
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct State {
     phrase: String,
@@ -46,7 +116,7 @@ fn invariant(state: State) -> bool {
     state.phrase != "BAAB"
 }
 
-fn next(input: State) -> Vec<State> {
+fn next2(input: State) -> Vec<State> {
     Next {
         states: vec![Some(input)],
     }
