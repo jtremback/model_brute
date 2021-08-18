@@ -5,33 +5,7 @@ struct Next {
 }
 
 impl Next {
-    // fn code(&mut self, closure: fn (State) -> Option<State>) -> Next {
-    //     let new_states: Vec<State> = vec![];
-    //     for state in self.states {
-    //         if let Some(new_state) = closure(state) {
-    //             new_states.push(new_state);
-    //         }
-    //     }
-    //     self.states = new_states;
-    //     return *self;
-    // }
-
-    fn code(mut self, closure: fn(&mut State) -> bool) -> Next {
-        for (i, state) in self.states.clone().iter().enumerate() {
-            // for state in self.states {
-            if let Some(some_state) = state {
-                let mut some_state_copy = some_state.clone();
-                if !closure(&mut some_state_copy) {
-                    self.states[i] = None
-                }
-                self.states[i] = Some(some_state_copy)
-            }
-        }
-        dbg!(self.states.clone());
-        self
-    }
-
-    fn branch(mut self, closures: Vec<fn(&mut State) -> bool>) -> Next {
+    fn branch(mut self, closures: Vec<fn(&mut State, &mut Self) -> bool>) -> Next {
         dbg!(self.states.clone());
         let mut states = vec![];
         for closure in closures {
@@ -39,8 +13,7 @@ impl Next {
             for (i, state) in states_copy.clone().iter().enumerate() {
                 if let Some(some_state) = state {
                     let mut some_state_copy = some_state.clone();
-                    if !closure(&mut some_state_copy) {
-                        dbg!("returned false");
+                    if !closure(&mut some_state_copy, &mut self) {
                         states_copy[i] = None
                     } else {
                         states_copy[i] = Some(some_state_copy)
@@ -77,8 +50,7 @@ fn next(input: State) -> Vec<State> {
     Next {
         states: vec![Some(input)],
     }
-    .branch(vec![|mut state| {
-        dbg!("first");
+    .branch(vec![|mut state, mut next| {
         if state.iterations > 5 {
             return false;
         }
@@ -87,14 +59,12 @@ fn next(input: State) -> Vec<State> {
         true
     }])
     .branch(vec![
-        |mut state| {
-            dbg!("second");
+        |mut state, mut next| {
             state.phrase = format!("{}{}", state.phrase, "A");
 
             true
         },
-        |mut state| {
-            dbg!("third");
+        |mut state, mut next| {
             state.phrase = format!("{}{}", state.phrase, "B");
 
             true
