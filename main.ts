@@ -32,17 +32,17 @@ function branch(states: Array<State>, branches: Array<Branch>): Array<State> {
   return outStates;
 }
 
-// either[
+// either {
 //   {
 //     state.phrase += "A";
 //   },
 //   {
 //     state.phrase += "B";
 //   }
-// ]
+// }
 
 // function next(state: State) {
-//   next {
+//   either {
 //     if (state.iterations >= 5) {
 //       stop;
 //     }
