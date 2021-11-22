@@ -3,8 +3,6 @@ interface State {
   iterations: number;
 }
 
-type MaybeState = State | null;
-
 type Branch = (state: State) => Array<State | null>;
 
 function branch(states: Array<State>, branches: Array<Branch>): Array<State> {
@@ -34,15 +32,38 @@ function branch(states: Array<State>, branches: Array<Branch>): Array<State> {
   return outStates;
 }
 
-function next(state: State) {
-  if (state.iterations >= 5) {
-    return [null];
-  }
+// either[
+//   {
+//     state.phrase += "A";
+//   },
+//   {
+//     state.phrase += "B";
+//   }
+// ]
 
+// function next(state: State) {
+//   next {
+//     if (state.iterations >= 5) {
+//       stop;
+//     }
+//     state.iterations += 1;
+
+//     either {
+//       state.phrase += "A";
+//     } or {
+//       state.phrase += "B";
+//     }
+//   }
+// }
+
+function next(state: State) {
   return branch(
     [state],
     [
       (state) => {
+        if (state.iterations >= 5) {
+          return [null];
+        }
         state.iterations += 1;
 
         return branch(
@@ -63,46 +84,62 @@ function next(state: State) {
   );
 }
 
+type StateTree = Array<{ state: State; parent: number }>;
+type StateQueue = Array<{ state: State; index: number }>;
+
+function getStackTrace(stateTree: StateTree, index: number) {
+  const trace = [];
+
+  while (index != -1) {
+    trace.unshift(stateTree[index].state);
+    index = stateTree[index].parent;
+  }
+
+  return trace;
+}
+
 function check(
   init: State,
-  next: (state: State) => Array<State | null>,
+  next: (state: State) => Array<State>,
   invariant: (state: State) => boolean
 ) {
-  let stateQueue: Array<State | null> = [init];
+  let stateTree: StateTree = [{ state: init, parent: -1 }];
+  // we initialize the state queue with the init state at an index of 0
+  // TODO: It might be possible to use the stateTree array as the stateQueue
+  // and save on some memory
+  let stateQueue: StateQueue = [{ state: init, index: 0 }];
   const seen: Set<State> = new Set();
+  // const stateTree: { [key: string]: { state: State, children: string[] } } = {};
 
   let i = 0;
 
   while (stateQueue.length > 0) {
     i += 1;
-    // this should be guaranteed to yield a State, given the test
-    const prevState = stateQueue.pop();
+    const { state, index } = stateQueue.pop()!;
 
-    console.log(prevState);
-
-    // If we have seen a state before, we skip it. fn next is completely deterministic depending on previous state
+    // If we have seen a state before, we skip it. next should be completely deterministic depending on previous state
     // so there is no point in running.
-    if (prevState && !seen.has(prevState)) {
-      if (!invariant(prevState)) {
+    if (state && !seen.has(state)) {
+      if (!invariant(state)) {
+        const trace = getStackTrace(stateTree, index);
         throw new Error(
-          "invariant broken by state: " + JSON.stringify(prevState)
+          "invariant broken by state: " + JSON.stringify(trace, null, "  ")
         );
       }
-      const nextStates = next(prevState);
-      console.log(nextStates);
-      stateQueue = stateQueue.concat(nextStates);
-      seen.add(prevState);
-      console.log(stateQueue);
+      const nextStates = next(state);
+
+      nextStates.forEach((state) => {
+        stateTree.push({ state, parent: index });
+        // `stateTree.length - 1` is the index of the item that was just added
+        stateQueue.push({ state, index: stateTree.length - 1 });
+      });
+      seen.add(state);
     }
   }
 }
 
 function invariant(state: State) {
-  if (state.phrase === "AAABB") {
-    return false;
-  }
-
-  return true;
+  return state.phrase !== "ABABA";
 }
 
 check(
@@ -113,36 +150,3 @@ check(
   next,
   invariant
 );
-
-// fn main() {
-//   let initial_state = State {
-//       iterations: 0,
-//       phrase: "".into(),
-//   };
-
-//   let mut state_queue = vec![initial_state];
-
-//   let mut seen: HashSet<State> = HashSet::new();
-
-//   let mut i = 0;
-
-//   while !state_queue.is_empty() {
-//       i += 1;
-//       let prev_state = state_queue.pop().unwrap();
-//       // If we have seen a state before, we skip it. fn next is completely deterministic depending on previous state
-//       // so there is no point in running.
-//       if seen.contains(&prev_state) {
-//           continue;
-//       }
-
-//       if !invariant(prev_state.clone()) {
-//           println!("Invariant violated with state: {:#?}", prev_state);
-//           break;
-//       }
-
-//       let mut next_states = next(prev_state.clone());
-
-//       state_queue.append(&mut next_states);
-//       seen.insert(prev_state);
-//   }
-// }
