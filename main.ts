@@ -109,7 +109,6 @@ function check(
   // and save on some memory
   let stateQueue: StateQueue = [{ state: init, index: 0 }];
   const seen: Set<State> = new Set();
-  // const stateTree: { [key: string]: { state: State, children: string[] } } = {};
 
   let i = 0;
 
