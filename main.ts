@@ -5,7 +5,7 @@ interface State {
 
 type Branch = (state: State) => Array<State | null>;
 
-function branch(states: Array<State>, branches: Array<Branch>): Array<State> {
+function either(states: Array<State>, branches: Array<Branch>): Array<State> {
   const newStates: Array<State | null> = [];
   for (const state of states) {
     for (const branch of branches) {
@@ -57,7 +57,7 @@ function branch(states: Array<State>, branches: Array<Branch>): Array<State> {
 // }
 
 function next(state: State) {
-  return branch(
+  return either(
     [state],
     [
       (state) => {
@@ -66,7 +66,7 @@ function next(state: State) {
         }
         state.iterations += 1;
 
-        return branch(
+        return either(
           [state],
           [
             (state) => {
@@ -82,6 +82,77 @@ function next(state: State) {
       },
     ]
   );
+}
+
+// function next(state: State) {
+//   either {
+//     if (state.iterations >= 5) {
+//       stop;
+//     }
+//
+//     either {
+//       state.phrase += "A";
+//     } or {
+//       state.phrase += "B";
+//     }
+//
+//     state.iterations += 1;
+//
+//     either {
+//       state.phrase += "C";
+//     } or {
+//       state.phrase += "D";
+//     }
+//   }
+// }
+
+function next2(state: State) {
+  return foo(state)
+    .and([
+      (state: State) => {
+        if (state.iterations >= 5) {
+          return [null];
+        }
+
+        return [state];
+      },
+    ])
+    .and([
+      (state: State) => {
+        state.phrase += "A";
+        return [state];
+      },
+      (state: State) => {
+        state.phrase += "B";
+
+        return foo(state).and([
+          (state: State) => {
+            state.phrase += "E";
+            return [state];
+          },
+          (state: State) => {
+            state.phrase += "F";
+            return [state];
+          },
+        ]);
+      },
+    ])
+    .and([
+      (state: State) => {
+        state.iterations += 1;
+        return [state];
+      },
+    ])
+    .and([
+      (state: State) => {
+        state.phrase += "C";
+        return [state];
+      },
+      (state: State) => {
+        state.phrase += "D";
+        return [state];
+      },
+    ]);
 }
 
 type StateTree = Array<{ state: State; parent: number }>;
