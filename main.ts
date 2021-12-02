@@ -1,7 +1,46 @@
 interface State {
   phrase: string;
   iterations: number;
+  // then: Premise;
 }
+
+// interface Premise {
+//   states: Array<State>;
+//   then: (branches: Array<Branch>) => Premise;
+//   run: Array<State>;
+// }
+
+// class Premise {
+//   states: Array<State>;
+//   then: (branches: Array<Branch>) => Premise;
+// }
+
+// function then(states: Array<State>, branches: Array<Branch>): Array<State> {
+//   const newStates: Array<State | null> = [];
+//   for (const state of states) {
+//     for (const branch of branches) {
+//       // Append states produced by the branch to
+//       // newStates
+//       newStates.push(
+//         ...branch(
+//           // Copy state so that we don't mess it up
+//           // for future runs
+//           JSON.parse(JSON.stringify(state))
+//         )
+//       );
+//     }
+//   }
+
+//   // Filter out null states
+//   const outStates: Array<State> = [];
+//   for (const maybeState of newStates) {
+//     if (maybeState) {
+//       outStates.push(maybeState);
+//     }
+//   }
+
+//   return outStates;
+// }
 
 type Branch = (state: State) => Array<State | null>;
 
@@ -32,30 +71,6 @@ function either(states: Array<State>, branches: Array<Branch>): Array<State> {
   return outStates;
 }
 
-// either {
-//   {
-//     state.phrase += "A";
-//   },
-//   {
-//     state.phrase += "B";
-//   }
-// }
-
-// function next(state: State) {
-//   either {
-//     if (state.iterations >= 5) {
-//       stop;
-//     }
-//     state.iterations += 1;
-
-//     either {
-//       state.phrase += "A";
-//     } or {
-//       state.phrase += "B";
-//     }
-//   }
-// }
-
 function next(state: State) {
   return either(
     [state],
@@ -85,75 +100,183 @@ function next(state: State) {
 }
 
 // function next(state: State) {
+//   if (state.iterations >= 5) {
+//     stop;
+//   }
+//
 //   either {
-//     if (state.iterations >= 5) {
-//       stop;
-//     }
+//     state.phrase += "A";
+//   } or {
+//     state.phrase += "B";
 //
-//     either {
-//       state.phrase += "A";
-//     } or {
-//       state.phrase += "B";
+//     either {} or {
+//       state.phrase += "b";
 //     }
+//   }
 //
-//     state.iterations += 1;
+//   state.iterations += 1;
 //
-//     either {
-//       state.phrase += "C";
-//     } or {
-//       state.phrase += "D";
-//     }
+//   either {
+//     state.phrase += "C";
+//   } or {
+//     state.phrase += "D";
 //   }
 // }
 
-function next2(state: State) {
-  return foo(state)
-    .and([
-      (state: State) => {
-        if (state.iterations >= 5) {
-          return [null];
-        }
-
-        return [state];
-      },
-    ])
-    .and([
-      (state: State) => {
-        state.phrase += "A";
-        return [state];
-      },
-      (state: State) => {
-        state.phrase += "B";
-
-        return foo(state).and([
-          (state: State) => {
-            state.phrase += "E";
+function next4(state: State) {
+  return either(
+    either(
+      either(
+        either(
+          [state],
+          [
+            (state) => {
+              if (state.iterations >= 5) {
+                return [null];
+              }
+              return [state];
+            },
+          ]
+        ),
+        [
+          (state) => {
+            state.phrase += "A";
             return [state];
           },
-          (state: State) => {
-            state.phrase += "F";
-            return [state];
+          (state) => {
+            state.phrase += "B";
+            return either(
+              [state],
+              [
+                (state) => {
+                  return [state];
+                },
+                (state) => {
+                  state.phrase += "b";
+                  return [state];
+                },
+              ]
+            );
           },
-        ]);
-      },
-    ])
-    .and([
-      (state: State) => {
-        state.iterations += 1;
-        return [state];
-      },
-    ])
-    .and([
-      (state: State) => {
+        ]
+      ),
+      [
+        (state) => {
+          state.iterations += 1;
+          return [state];
+        },
+      ]
+    ),
+    [
+      (state) => {
         state.phrase += "C";
         return [state];
       },
-      (state: State) => {
+      (state) => {
         state.phrase += "D";
         return [state];
       },
-    ]);
+    ]
+  );
 }
+
+// function next2(state: State) {
+//   return state
+//     .then([
+//       (state: State) => {
+//         if (state.iterations >= 5) {
+//           return [null];
+//         }
+
+//         return [state];
+//       },
+//     ])
+//     .then([
+//       (state: State) => {
+//         state.phrase += "A";
+//         return [state];
+//       },
+//       (state: State) => {
+//         state.phrase += "B";
+
+//         return state.then([
+//           (state: State) => {
+//             state.phrase += "E";
+//             return [state];
+//           },
+//           (state: State) => {
+//             state.phrase += "F";
+//             return [state];
+//           },
+//         ]);
+//       },
+//     ])
+//     .then([
+//       (state: State) => {
+//         state.iterations += 1;
+//         return [state];
+//       },
+//     ])
+//     .then([
+//       (state: State) => {
+//         state.phrase += "C";
+//         return [state];
+//       },
+//       (state: State) => {
+//         state.phrase += "D";
+//         return [state];
+//       },
+//     ]);
+// }
+
+// function next3(state: State) {
+//   return state
+//     .then([
+//       (state: State) => {
+//         if (state.iterations >= 5) {
+//           return [null];
+//         }
+
+//         return [state];
+//       },
+//     ])
+//     .then([
+//       (state: State) => {
+//         state.phrase += "A";
+//         return [state];
+//       },
+//       (state: State) => {
+//         state.phrase += "B";
+
+//         return state.then([
+//           (state: State) => {
+//             state.phrase += "E";
+//             return [state];
+//           },
+//           (state: State) => {
+//             state.phrase += "F";
+//             return [state];
+//           },
+//         ]);
+//       },
+//     ])
+//     .then([
+//       (state: State) => {
+//         state.iterations += 1;
+//         return [state];
+//       },
+//     ])
+//     .then([
+//       (state: State) => {
+//         state.phrase += "C";
+//         return [state];
+//       },
+//       (state: State) => {
+//         state.phrase += "D";
+//         return [state];
+//       },
+//     ]);
+// }
 
 type StateTree = Array<{ state: State; parent: number }>;
 type StateQueue = Array<{ state: State; index: number }>;
@@ -190,6 +313,7 @@ function check(
     // If we have seen a state before, we skip it. next should be completely deterministic depending on previous state
     // so there is no point in running.
     if (state && !seen.has(state)) {
+      console.log(state);
       if (!invariant(state)) {
         const trace = getStackTrace(stateTree, index);
         throw new Error(
@@ -209,7 +333,7 @@ function check(
 }
 
 function invariant(state: State) {
-  return state.phrase !== "ABABA";
+  return state.phrase !== "BD";
 }
 
 check(
@@ -217,6 +341,6 @@ check(
     phrase: "",
     iterations: 0,
   },
-  next,
+  next4,
   invariant
 );
