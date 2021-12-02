@@ -232,6 +232,8 @@ function check(
       seen.add(state);
     }
   }
+
+  console.log("number of states: ", i);
 }
 
 function invariant(state: State) {
