@@ -1,46 +1,7 @@
 interface State {
   phrase: string;
   iterations: number;
-  // then: Premise;
 }
-
-// interface Premise {
-//   states: Array<State>;
-//   then: (branches: Array<Branch>) => Premise;
-//   run: Array<State>;
-// }
-
-// class Premise {
-//   states: Array<State>;
-//   then: (branches: Array<Branch>) => Premise;
-// }
-
-// function then(states: Array<State>, branches: Array<Branch>): Array<State> {
-//   const newStates: Array<State | null> = [];
-//   for (const state of states) {
-//     for (const branch of branches) {
-//       // Append states produced by the branch to
-//       // newStates
-//       newStates.push(
-//         ...branch(
-//           // Copy state so that we don't mess it up
-//           // for future runs
-//           JSON.parse(JSON.stringify(state))
-//         )
-//       );
-//     }
-//   }
-
-//   // Filter out null states
-//   const outStates: Array<State> = [];
-//   for (const maybeState of newStates) {
-//     if (maybeState) {
-//       outStates.push(maybeState);
-//     }
-//   }
-
-//   return outStates;
-// }
 
 type Branch = (state: State) => Array<State | null>;
 
@@ -109,7 +70,7 @@ function next(state: State) {
 //   } or {
 //     state.phrase += "B";
 //
-//     either {} or {
+//     maybe {
 //       state.phrase += "b";
 //     }
 //   }
@@ -121,6 +82,8 @@ function next(state: State) {
 //   } or {
 //     state.phrase += "D";
 //   }
+//
+//   return state
 // }
 
 function next4(state: State) {
@@ -199,11 +162,11 @@ function check(
   next: (state: State) => Array<State>,
   invariant: (state: State) => boolean
 ) {
-  let stateTree: StateTree = [{ state: init, parent: -1 }];
+  const stateTree: StateTree = [{ state: init, parent: -1 }];
   // we initialize the state queue with the init state at an index of 0
   // TODO: It might be possible to use the stateTree array as the stateQueue
   // and save on some memory
-  let stateQueue: StateQueue = [{ state: init, index: 0 }];
+  const stateQueue: StateQueue = [{ state: init, index: 0 }];
   const seen: Set<State> = new Set();
 
   let i = 0;
@@ -237,7 +200,7 @@ function check(
 }
 
 function invariant(state: State) {
-  return state.phrase !== "BD";
+  return state.phrase !== "BbCACACAD";
 }
 
 check(
