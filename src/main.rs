@@ -1,110 +1,6 @@
 use std::collections::HashSet;
 
-struct Next {
-    states: Vec<Option<State>>,
-}
-
-impl Next {
-    fn branch(mut self, closures: Vec<fn(&mut State, &mut Self) -> bool>) -> Next {
-        dbg!(self.states.clone());
-        let mut states = vec![];
-        for closure in closures {
-            let mut states_copy = self.states.clone();
-            for (i, state) in states_copy.clone().iter().enumerate() {
-                if let Some(some_state) = state {
-                    let mut some_state_copy = some_state.clone();
-                    if !closure(&mut some_state_copy, &mut self) {
-                        states_copy[i] = None
-                    } else {
-                        states_copy[i] = Some(some_state_copy)
-                    }
-                }
-            }
-            states.append(&mut states_copy)
-        }
-        dbg!(states.clone());
-        self.states = states;
-        self
-    }
-
-    fn output(self) -> Vec<State> {
-        self.states
-            .iter()
-            .filter(|x| x.is_some())
-            .map(|x| x.clone().unwrap())
-            .collect()
-    }
-}
-
-fn branch(
-    states: Vec<Option<State>>,
-    closures: Vec<fn(&State) -> Vec<Option<State>>>,
-) -> Vec<Option<State>> {
-    dbg!(states.clone());
-    let mut states = vec![];
-    for closure in closures {
-        let mut states_copy: Vec<Option<State>> = states.clone();
-        for (i, state) in states_copy.clone().iter().enumerate() {
-            if let Some(some_state) = state {
-                // let mut some_state_copy = some_state.clone();
-                // if !closure(&mut some_state_copy, &mut self) {
-                //     states_copy[i] = None
-                // } else {
-                //     states_copy[i] = Some(some_state_copy)
-                // }
-                let mut out_states = closure(some_state);
-                states_copy.append(&mut out_states);
-            }
-        }
-        states.append(&mut states_copy)
-    }
-    dbg!(states.clone());
-    states
-}
-
-fn output(input: Vec<Option<State>>) -> Vec<State> {
-    input
-        .iter()
-        .filter(|x| x.is_some())
-        .map(|x| x.clone().unwrap())
-        .collect()
-}
-
-fn next(input: State) -> Vec<State> {
-    let state = branch(
-        vec![Some(input)],
-        vec![|state| {
-            let mut state = state.clone();
-            if state.iterations > 5 {
-                return vec![None];
-            }
-
-            state.iterations += 1;
-
-            let state = branch(
-                vec![Some(state)],
-                vec![
-                    |state| {
-                        let mut state = state.clone();
-                        state.phrase = format!("{}{}", state.phrase, "A");
-
-                        vec![Some(state)]
-                    },
-                    |state| {
-                        let mut state = state.clone();
-                        state.phrase = format!("{}{}", state.phrase, "B");
-
-                        vec![Some(state)]
-                    },
-                ],
-            );
-
-            state
-        }],
-    );
-
-    output(state)
-}
+fn main() {}
 
 #[derive(Debug, PartialEq, Eq, Hash, Clone)]
 struct State {
@@ -112,66 +8,68 @@ struct State {
     iterations: u64,
 }
 
-fn invariant(state: State) -> bool {
-    state.phrase != "BAAB"
+struct StateTreeNode {
+    state: State,
+    parent: Option<usize>,
 }
 
-fn next2(input: State) -> Vec<State> {
-    Next {
-        states: vec![Some(input)],
+struct StateQueueNode {
+    state: State,
+    tree_index: usize,
+}
+
+fn get_stack_trace(state_tree: &Vec<StateTreeNode>, mut index: Option<usize>) {
+    let mut trace = vec![];
+
+    while let Some(i) = index {
+        trace.push(state_tree[i].state.clone());
+        index = state_tree[i].parent;
     }
-    .branch(vec![|mut state, mut next| {
-        if state.iterations > 5 {
-            return false;
-        }
 
-        state.iterations += 1;
-        true
-    }])
-    .branch(vec![
-        |mut state, mut next| {
-            state.phrase = format!("{}{}", state.phrase, "A");
-
-            true
-        },
-        |mut state, mut next| {
-            state.phrase = format!("{}{}", state.phrase, "B");
-
-            true
-        },
-    ])
-    .output()
+    return trace.reverse();
 }
 
-fn main() {
-    let initial_state = State {
-        iterations: 0,
-        phrase: "".into(),
-    };
+fn check(init: State, next: fn(&State) -> Vec<State>, invariant: fn(&State) -> bool) {
+    let mut state_tree = vec![StateTreeNode {
+        state: init.clone(),
+        parent: None,
+    }];
 
-    let mut state_queue = vec![initial_state];
+    let mut state_queue = vec![StateQueueNode {
+        state: init.clone(),
+        tree_index: 0,
+    }];
 
     let mut seen: HashSet<State> = HashSet::new();
 
     let mut i = 0;
 
-    while !state_queue.is_empty() {
+    while state_queue.len() > 0 {
         i += 1;
-        let prev_state = state_queue.pop().unwrap();
-        // If we have seen a state before, we skip it. fn next is completely deterministic depending on previous state
+
+        let StateQueueNode { state, tree_index } = state_queue.pop().unwrap();
+
+        // If we have seen a state before, we skip it. next should be completely deterministic depending on previous state
         // so there is no point in running.
-        if seen.contains(&prev_state) {
-            continue;
+        if !seen.contains(&state) {
+            if !invariant(&state) {
+                let trace = get_stack_trace(&state_tree, Some(tree_index));
+
+                panic!("{:#?}", trace)
+            }
+
+            for state in next(&state) {
+                state_tree.push(StateTreeNode {
+                    state: state.clone(),
+                    parent: Some(tree_index),
+                });
+                // `stateTree.length - 1` is the index of the item that was just added
+                state_queue.push(StateQueueNode {
+                    state,
+                    tree_index: state_tree.len() - 1,
+                });
+            }
+            seen.insert(state);
         }
-
-        if !invariant(prev_state.clone()) {
-            println!("Invariant violated with state: {:#?}", prev_state);
-            break;
-        }
-
-        let mut next_states = next(prev_state.clone());
-
-        state_queue.append(&mut next_states);
-        seen.insert(prev_state);
     }
 }
