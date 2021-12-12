@@ -86,6 +86,66 @@ function next(state: State) {
 //   return state
 // }
 
+class Premise {
+  states: Array<State>;
+
+  constructor(states: State) {
+    this.states = [states];
+  }
+
+  either(branches: Array<Branch>) {
+    this.states = either(this.states, branches);
+    return this;
+  }
+
+  then(branch: Branch) {
+    this.states = either(this.states, [branch]);
+    return this;
+  }
+
+  maybe(branch: Branch) {
+    this.states = either(this.states, [branch, (state) => [state]]);
+    return this;
+  }
+}
+
+function next5(state: State) {
+  return new Premise(state)
+    .then((state) => {
+      if (state.iterations >= 5) {
+        return [null];
+      }
+      return [state];
+    })
+    .either([
+      (state) => {
+        state.phrase += "A";
+        return [state];
+      },
+      (state) => {
+        state.phrase += "B";
+        return new Premise(state).maybe((state) => {
+          state.phrase += "b";
+          return [state];
+        }).states;
+      },
+    ])
+    .then((state) => {
+      state.iterations += 1;
+      return [state];
+    })
+    .either([
+      (state) => {
+        state.phrase += "C";
+        return [state];
+      },
+      (state) => {
+        state.phrase += "D";
+        return [state];
+      },
+    ]).states;
+}
+
 function next4(state: State) {
   return either(
     either(
@@ -208,6 +268,6 @@ check(
     phrase: "",
     iterations: 0,
   },
-  next4,
+  next5,
   invariant
 );
