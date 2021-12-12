@@ -8,6 +8,21 @@ struct State {
     iterations: u64,
 }
 
+fn either(states: Vec<State>, branches: Vec<fn(State) -> Vec<Option<State>>>) -> Vec<State> {
+    let mut new_states: Vec<Option<State>> = vec![];
+
+    for state in states {
+        for branch in &branches {
+            // Append states produced by
+            // the branch to new_states
+            new_states.append(&mut branch(state.clone()));
+        }
+    }
+
+    // filter out None states
+    return new_states.iter().filter_map(|x| x.clone()).collect();
+}
+
 struct StateTreeNode {
     state: State,
     parent: Option<usize>,
